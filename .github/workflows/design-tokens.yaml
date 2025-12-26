@@ -6,7 +6,7 @@ on:
 jobs:
   process-fork:
     if: |
-      github.event.pull_request.head.repo.fork == true    
+      github.event.pull_request.head.repo.fork == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -18,10 +18,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Fetch fork design branch
+      - name: Setup Git bot user
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Fetch fork design branch
+        run: |
           # Забираем ветку design/ из форка
           FORK_URL="https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
           FORK_BRANCH="${{ github.event.pull_request.head.ref }}"
@@ -39,11 +42,11 @@ jobs:
           else
             echo "❌ tokens.json not found"
             echo "has_tokens=false" >> $GITHUB_OUTPUT
-            exit 0  # Пропускаем если нет токенов
           fi
       
       - name: Generate CSS variables
         if: steps.check-tokens.outputs.has_tokens == 'true'
+        id: generate-css
         run: |
           npm ci
           npm run build:tokens
@@ -51,16 +54,18 @@ jobs:
           # Проверяем изменилось ли что-то
           if git diff --quiet; then
             echo "✅ No CSS changes needed"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             git add .
             git commit -m "🎨 Auto-generated CSS variables"
+            echo "✅ CSS changes committed"
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
       
       - name: Push to main repo and create PR
-        if: steps.check-tokens.outputs.has_changes == 'true'
+        if: steps.generate-css.outputs.has_changes == 'true'
         run: |
-          SYNC_BRANCH="sync/${{ github.event.pull_request.number }}"
+          SYNC_BRANCH="sync-tokens/${{ github.event.pull_request.number }}"
           
           # Пушим ветку в основной репозиторий
           git push origin $SYNC_BRANCH
