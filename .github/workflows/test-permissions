@@ -1,0 +1,25 @@
+name: Test Permissions
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Test push
+        run: |
+          # Создаем тестовую ветку
+          git checkout -b test-permissions-$(date +%s)
+          echo "test" > test-file.txt
+          git add test-file.txt
+          git commit -m "Test commit"
+          
+          # Пытаемся запушить
+          git push origin HEAD || echo "❌ Push failed"
