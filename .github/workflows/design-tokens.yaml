@@ -9,9 +9,9 @@ jobs:
       github.event.pull_request.head.repo.fork == true
     runs-on: ubuntu-latest
     permissions:
-      contents: write
       pull-requests: write
-    
+      contents: write
+      
     steps:
       - name: Checkout main repo
         uses: actions/checkout@v4
@@ -70,6 +70,9 @@ jobs:
           # Пушим ветку в основной репозиторий
           git push origin $SYNC_BRANCH
           
+      - name: Create PR
+        if:  steps.generate-css.outputs.has_changes == 'true'
+        run: | 
           # Создаем новый PR в основном репо
           gh pr create \
             --title "🎨 Design sync: ${{ github.event.pull_request.title }}" \
