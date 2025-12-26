@@ -34,7 +34,6 @@ jobs:
             --body "Auto-synced from fork PR #${{ github.event.pull_request.number }}" \
             --base main \
             --head test-permissions-$(date +%s) \
-            --label "design,auto-sync"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
