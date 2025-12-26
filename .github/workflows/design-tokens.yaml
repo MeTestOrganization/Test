@@ -6,7 +6,7 @@ on:
 
 jobs:
   generate:
-    if: startsWith(github.event.pull_request.head.ref, 'design')
+    if: github.event.pull_request.head.repo.fork == true
     
     runs-on: ubuntu-latest
     permissions:
