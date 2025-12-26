@@ -62,10 +62,18 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
       
-      - name: Push to main repo and create PR
+      - name: Push to main repo
         if: steps.generate-css.outputs.has_changes == 'true'
         run: |
           SYNC_BRANCH="sync-tokens/${{ github.event.pull_request.number }}"
+          echo "=== DEBUG INFO ==="
+          echo "Current branch: $(git branch --show-current)"
+          echo "Git status:"
+          git status
+          echo "Remote URL:"
+          git remote get-url origin
+          echo "Config:"
+          git config --list | grep -E "(user|remote)"
           
           # Пушим ветку в основной репозиторий
           git push origin $SYNC_BRANCH
