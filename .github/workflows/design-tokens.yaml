@@ -74,7 +74,7 @@ jobs:
           git remote get-url origin
           echo "Config:"
           git config --list | grep -E "(user|remote)"
-          
+
           # Пушим ветку в основной репозиторий
           git push origin $SYNC_BRANCH
           
