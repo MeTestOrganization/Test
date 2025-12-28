@@ -1,0 +1,47 @@
+name: Test Permissions
+on: workflow_dispatch
+run-name: Test Permissions
+env:
+  DATE: (date +'%Y-%m-%d')
+  BRANCH_NAME: "test/permissions-${DATE}-${{ github.run_id }}"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Setup Git bot user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Setup Variables
+        run: |
+          DATE=$(date +'%Y-%m-%d')
+          BRANCH_NAME="test/permissions-${DATE}-${{ github.run_id }}"
+
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+      - name: Test push
+        run: |
+          # Создаем тестовую ветку
+          git checkout -b "$BRANCH_NAME"
+          echo "test" > test-file.txt
+          git add test-file.txt
+          git commit -m "Test commit"
+
+          # Пытаемся запушить
+          git push --set-upstream origin ${{env.BRANCH_NAME}} || echo "❌ Push failed"
+      - name: create PR
+        run: |
+          # Создаем новый PR в основном репо
+          gh pr create \
+            --title "🎨 Design sync:" \
+            --body "Auto-synced from fork PR " \
+            --base main \
+            --head "${{env.BRANCH_NAME}}" \
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
