@@ -3,8 +3,8 @@
  */
 
 :root {
-  --termeet-typo-paragraph: 600 35px/30px Roboto;
-  --termeet-border-radius-large: 17px;
-  --termeet-bg-color-always-red: #e30cbd;
-  --termeet-bg-color-always-green: #33f204;
+  --termeet-typo-paragraph: 300 35px/30px Roboto;
+  --termeet-border-radius-large: 52px;
+  --termeet-bg-color-always-red: #c973d1;
+  --termeet-bg-color-always-green: rgba(220, 15, 148, 0.49);
 }
