@@ -18,7 +18,9 @@ jobs:
       - name: Checkout main repo
         uses: actions/checkout@v6
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -83,8 +85,8 @@ jobs:
           This is an automated update based on PR #${{ github.event.pull_request.number }}
           Original PR: ${{ github.event.pull_request.html_url }}"
 
-          # Пушим в основной репозиторий
-          git push origin $NEW_BRANCH
+          # Пушим в основной репозиторий с явным токеном
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $NEW_BRANCH
 
           # Создаем новый PR и сохраняем его номер
           NEW_PR_URL=$(gh pr create \
