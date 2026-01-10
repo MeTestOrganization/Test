@@ -8,19 +8,16 @@ on:
 
 jobs:
   process-fork:
-    if: github.event.pull_request.head.repo.fork == true
+    if: ${{ github.event.pull_request.head.repo.fork == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
 
     steps:
       - name: Checkout main repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          persist-credentials: true
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -38,13 +35,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch PR changes
+      - name: Fetch PR changes and save fork info
         run: |
-          # Создаем ветку с нужным названием сразу
-          NEW_BRANCH="auto-css-update-pr-${{ github.event.pull_request.number }}"
-          git fetch origin pull/${{ github.event.pull_request.number }}/head:$NEW_BRANCH
-          git checkout $NEW_BRANCH
-          echo "NEW_BRANCH=$NEW_BRANCH" >> $GITHUB_ENV
+          # Сохраняем информацию о форке
+          FORK_OWNER="${{ github.event.pull_request.head.repo.owner.login }}"
+          FORK_REPO="${{ github.event.pull_request.head.repo.name }}"
+          FORK_BRANCH="${{ github.event.pull_request.head.ref }}"
+
+          # Получаем изменения из PR
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-branch
+          git checkout pr-branch
 
       - name: Check for tokens.json
         id: check-tokens
@@ -73,44 +73,33 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create new branch and PR
+      - name: Commit and push to fork
         if: steps.generate-css.outputs.has_changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORK_PAT: ${{ secrets.FORK_PAT_TOKEN }}
         run: |
           # Коммитим изменения
           git add .
           git commit -m "🎨 Auto-generated CSS variables from tokens.json
 
-          This is an automated update based on PR #${{ github.event.pull_request.number }}
-          Original PR: ${{ github.event.pull_request.html_url }}"
+          Auto-updated by GitHub Actions from PR #${{ github.event.pull_request.number }}"
 
-          # Пушим в основной репозиторий с явным токеном
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $NEW_BRANCH
+          echo "✅ Pushing to your fork: $FORK_OWNER/$FORK_REPO"
+          git push https://x-access-token:${FORK_PAT}@github.com/$FORK_OWNER/$FORK_REPO.git HEAD:$FORK_BRANCH
+          fi
 
-          # Создаем новый PR и сохраняем его номер
-          NEW_PR_URL=$(gh pr create \
-            --title "🎨 Auto CSS Update for PR #${{ github.event.pull_request.number }}" \
-            --body "## Автоматически сгенерированные CSS переменные
+      - name: Comment on PR with instructions
+        if: steps.generate-css.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+            # Для вашего форка - изменения уже запушены
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --body "## ✅ CSS переменные обновлены автоматически
 
-          Этот PR содержит:
-          - ✅ Все изменения из оригинального PR #${{ github.event.pull_request.number }}
-          - ✅ Автоматически сгенерированные CSS переменные из \`tokens.json\`
-
-          ### Оригинальный PR
-          - Автор: @${{ github.event.pull_request.user.login }}
-          - Ссылка: ${{ github.event.pull_request.html_url }}
-
-          ### Действия
-          Оригинальный PR #${{ github.event.pull_request.number }} будет автоматически закрыт.
-
-          ---
-          🤖 Создано автоматически GitHub Actions" \
-            --base main \
-            --head $NEW_BRANCH \
-            --label "automated" \
-            --label "design-tokens")
-
-          # Закрываем оригинальный PR
-          gh pr close ${{ github.event.pull_request.number }} \
-            --comment "🤖 Этот PR был автоматически закрыт, так как создан новый PR с обновленными CSS переменными: $NEW_PR_URL"
+            Изменения были автоматически добавлены в ваш PR.
+            
+            Пожалуйста, проверьте обновленные файлы и при необходимости внесите дополнительные изменения.
+            
+            ---
+            🤖 Автоматическое обновление от GitHub Actions"
