@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 18
+          cache: pnpm
       - name: Setup Git bot user
         run: |
           git config user.name "github-actions[bot]"
@@ -55,7 +56,7 @@ jobs:
           else
             git add .
             git commit -m "🎨 Auto-generated CSS variables"
-            git push origin
+            git push origin HEAD:origin/${{ github.head_ref }}
             echo "✅ CSS changes committed"
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
